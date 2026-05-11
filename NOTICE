@@ -1,0 +1,33 @@
+sdr-acars
+=========
+
+This crate is a Rust port of acarsdec, the C ACARS (Aircraft
+Communications Addressing and Reporting System) decoder.
+
+The original C program acarsdec is licensed under the GNU Library
+General Public License, version 2.
+
+  Copyright (c) 2015 Thierry Leconte
+  and contributors to the acarsdec project
+  https://github.com/TLeconte/acarsdec
+
+The MSK demodulator (`msk.c`), the frame decoder + parity FEC
+(`acars.c`), the syndrome lookup table (`syndrom.h`), the per-channel
+decimation/AM-demod stage (`rtl.c`), the OOOI label parsers
+(`label.c`), the JSON schema (`output.c::buildjson`), and the
+plain-text printer (`output.c::printmsg`) in this crate are
+transcribed directly from the upstream C source — constants, lookup
+tables, state-machine structure, and field ordering. As such this
+work is a derivative of acarsdec and is distributed under the same
+GNU Library General Public License, version 2.
+
+  Copyright (C) 2026 Jason Herald <jason.herald@gmail.com>
+  and contributors to the sdr-acars project
+  https://github.com/jasonherald/sdr-acars
+
+The vendored test recording `tests/data/acars_test.wav` is the
+`test.wav` shipped with acarsdec, redistributed here under the same
+license — see `tests/data/README.md`.
+
+See the LICENSE file for the full text of the GNU Library General
+Public License, version 2.

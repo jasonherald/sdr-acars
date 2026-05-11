@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2
+
+      # No system deps: every dependency is pure Rust.
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (default features — includes the `cli` bin)
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Clippy (library only — no default features)
+        run: cargo clippy --all-targets --no-default-features --locked -- -D warnings
+
+      - name: Build (default features)
+        run: cargo build --locked
+
+      - name: Build (library only)
+        run: cargo build --no-default-features --locked
+
+      - name: Test (default features — runs the e2e acarsdec-compat test)
+        run: cargo test --locked
+
+      - name: Test (library only — e2e test is cfg(feature = "cli")-gated out)
+        run: cargo test --no-default-features --locked
+
+  docs:
+    name: Docs (docs.rs config)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2
+      - name: Build docs (all features, no-deps, like docs.rs)
+        run: cargo doc --all-features --no-deps --locked
+
+  msrv:
+    name: MSRV (1.95.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # Pin to the version declared in `Cargo.toml`'s `rust-version`.
+      # CI's default `stable` channel keeps advancing past this; without
+      # the pin a newer-than-1.95 feature could land green and silently
+      # break consumers on 1.95.
+      - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          toolchain: 1.95.0
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2
+        with:
+          key: msrv-1.95.0
+      - name: Build (all features, MSRV pin)
+        run: cargo build --all-features --locked
+
+  cross-platform:
+    name: Cross-platform build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2
+        with:
+          key: cross-${{ matrix.os }}
+
+      # Pure-Rust crate — the macOS/Windows runs exist mainly to keep
+      # the docs-rs / "works everywhere" claim honest. The e2e test
+      # invokes the `sdr-acars-cli` binary, so it runs here too.
+      - name: Build (all features)
+        run: cargo build --all-features --locked
+
+      - name: Test (default features)
+        run: cargo test --locked

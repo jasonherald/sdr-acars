@@ -1,0 +1,80 @@
+[package]
+name = "sdr-acars"
+version = "0.1.0"
+description = "ACARS (VHF aircraft datalink) decoder — MSK demod, frame parser with FEC, multi-block reassembly, acarsdec-compatible JSON, and a CLI. Pure-Rust port of acarsdec."
+edition = "2024"
+rust-version = "1.95"
+license = "LGPL-2.0-only"
+repository = "https://github.com/jasonherald/sdr-acars"
+homepage = "https://github.com/jasonherald/sdr-acars"
+documentation = "https://docs.rs/sdr-acars"
+readme = "README.md"
+keywords = ["acars", "aviation", "sdr", "vhf", "decoder"]
+categories = ["aerospace", "command-line-utilities", "encoding"]
+
+# Files intentionally kept out of the published artifact: CI / dev-tool
+# config, the rust-toolchain pin (consumers pick their own), and the
+# in-tree changelog (useful in the GitHub repo, not needed to compile).
+# The acarsdec test.wav under tests/data/ ships intentionally — it's the
+# same LGPL-2.0 license as this crate, and keeping it in-package lets
+# `cargo test` work for anyone who vendors the crate.
+exclude = [
+    "/.github",
+    "/.gitignore",
+    "/deny.toml",
+    "/rust-toolchain.toml",
+]
+
+[features]
+# `cli` builds the `sdr-acars-cli` binary; on by default so a plain
+# `cargo install sdr-acars` gives you the tool. Library-only consumers
+# (an app embedding just the decoder) build with
+# `default-features = false` and skip the `clap` / `tracing-subscriber`
+# / `hound` dependency trees entirely — those are CLI-only.
+default = ["cli"]
+cli = ["dep:clap", "dep:tracing-subscriber", "dep:hound"]
+
+[dependencies]
+# `arrayvec` for fixed-capacity `ArrayString` / `ArrayVec` in the frame
+# parser hot path — no heap churn per decoded message.
+arrayvec = "0.7"
+# `num-complex` for the MSK demod's complex baseband. Default features
+# only — the demod just does arithmetic on `Complex32`.
+num-complex = "0.4"
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+
+# CLI-only deps, gated behind the `cli` feature.
+clap = { version = "4", features = ["derive"], optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
+# WAV input for `sdr-acars-cli`; the library and the synthetic tests
+# never touch it, so it's CLI-gated.
+hound = { version = "3", optional = true }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Allow common patterns pedantic flags unnecessarily.
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Flag unwrap/panic in library code.
+unwrap_used = "warn"
+panic = "warn"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+[[bin]]
+name = "sdr-acars-cli"
+path = "src/bin/sdr-acars-cli.rs"
+# The CLI uses `clap` + `tracing_subscriber` + `hound`, all gated
+# behind `cli`. Without the feature the bin target is skipped.
+required-features = ["cli"]
