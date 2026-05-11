@@ -1,0 +1,10 @@
+# Normalize line endings: LF in the repo, LF on checkout everywhere.
+# Keeps the acarsdec snapshot fixture (tests/fixtures/*.txt) byte-
+# identical across platforms so the e2e diff test passes on Windows
+# CI runners — GitHub's `windows-latest` git defaults to
+# `core.autocrlf=true`, which would otherwise hand the test `\r\n`
+# lines while the CLI emits `\n`.
+* text=auto eol=lf
+
+# The vendored acarsdec test recording is binary — never touch it.
+*.wav binary

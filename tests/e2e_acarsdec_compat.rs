@@ -25,6 +25,12 @@ use std::{path::PathBuf, process::Command};
 /// because the pattern is anchored at the start of the line and uses
 /// simple character classes — a `find`/`char` walk is sufficient.
 fn strip_volatile(s: &str) -> String {
+    // Normalize CRLF → LF so a snapshot fixture checked out with
+    // Windows line endings (git `autocrlf=true`) compares equal to the
+    // CLI's `\n` output. `.gitattributes` pins `eol=lf` so this
+    // shouldn't fire in CI, but the belt keeps the test honest on a
+    // working tree with mixed endings.
+    let s = s.replace("\r\n", "\n");
     let mut out = String::with_capacity(s.len());
     for line in s.split_inclusive('\n') {
         if let Some(stripped) = strip_volatile_line(line) {
