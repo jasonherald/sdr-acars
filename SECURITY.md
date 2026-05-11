@@ -63,11 +63,17 @@ Vulnerabilities in frame/label/byte parsing, the WAV / IQ file readers in the
 CLI, the JSON serializer, or the channelizer/demod are in scope. The decoder
 treats all bytes off the air (or out of a file) as untrusted input.
 
+A security advisory in one of this crate's dependencies (`clap`, `hound`,
+`tracing`, `serde_json`, `num-complex`, `arrayvec`, …) that affects this crate
+**is in scope**: report it here and we'll bump the dependency and cut a patched
+release. Notifying the upstream project as well is appreciated. (cargo-audit +
+Dependabot also surface most of these automatically.)
+
 ### Out of scope
 
 - Vulnerabilities in the upstream C `acarsdec` — report there
-- Bugs in `clap`, `hound`, `tracing`, `serde_json`, `num-complex`, `arrayvec`,
-  or other dependencies — report upstream
+- A dependency advisory that does **not** touch this crate's code paths —
+  report it to that project
 - Malformed-but-harmless input that simply fails to decode (a corrupt WAV, a
   frame that doesn't pass CRC) — that's expected behavior, not a vulnerability
 - Resource exhaustion from a deliberately enormous input file (the CLI streams,
